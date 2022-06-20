@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html manifest="site.manifest">
+<head>
+	<meta name="viewport" content="user-scalable=no, width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+	<link rel="apple-touch-icon" href="earth-folder.png">
+	<link rel="apple-touch-icon-precomposed" href="earth-folder.png">
+	<link rel="apple-touch-startup-image" href="earth-folder.png" />
+	
+	<style type="text/css">
+		#main{
+			width:900px;
+			margin:auto;
+		}
+	</style>
+</head>
+<body>
+	<div id="main">
+		<h1>Generateur de martine</h1>
+		<p>En cours de développement.</p>
+	</div>
+	<div id="form">
+		<label for="name">Nom: </label>
+  		<input type="text" id="name" name="name"><br>
+  		<label for="message">Message: </label>
+  		<input type="text" id="message" name="message"><br>
+  		<input type="submit" id="generer" onClick="generate()" value="generer">
+	</div>
+	<div id="images">
+	
+	</div>
+</body>
+<script>
+var selectedImg;
+
+async function generate() {
+	const name = document.getElementById("name").value;
+	const message = document.getElementById("message").value;
+	const object = { name: name , description: message, image: selectedImg};
+  const response = await fetch('/generate', {
+    method: 'POST',
+    body: JSON.stringify(object)
+  })
+  .then(response => response.blob())
+  .then(imageBlob => {
+  	  downloadBlob(imageBlob, "martine_"+name+"_"+message+".jpg");
+      // Then create a local URL for that image and print it 
+      const imageObjectURL = URL.createObjectURL(imageBlob);
+      console.log(imageObjectURL);
+  });
+}
+
+function downloadBlob(blob, name = 'file.txt') {
+  // Convert your blob into a Blob URL (a special url that points to an object in the browser's memory)
+  const blobUrl = URL.createObjectURL(blob);
+
+  // Create a link element
+  const link = document.createElement("a");
+
+  // Set link's href to point to the Blob URL
+  link.href = blobUrl;
+  link.download = name;
+
+  // Append link to the body
+  document.body.appendChild(link);
+
+  // Dispatch click event on the link
+  // This is necessary as link.click() does not work on the latest firefox
+  link.dispatchEvent(
+    new MouseEvent('click', { 
+      bubbles: true, 
+      cancelable: true, 
+      view: window 
+    })
+  );
+
+  // Remove link from body
+  document.body.removeChild(link);
+}
+
+
+
+function onSelect(img) {
+	selectedImg = img;
+	console.log("select: " + img+ " - " + selectedImg);
+}
+async function loadNames() {
+  const response = await fetch('/images');
+  const names = await response.json();
+  console.log(names);
+  var imgDiv = document.getElementById("images"); 
+  for(var index = 0; index < names.images.length; index++) {
+  	var img = document.createElement("img");
+  	img.src = names.images[index];
+  	img.width = 200;
+  	img.height = 400;
+  	img.setAttribute("onclick","onSelect('"+names.images[index]+"')");
+  	//img.onclick = function() { onSelect(names.images[index]);};
+  	imgDiv.appendChild(img);
+  }
+  // logs [{ name: 'Joker'}, { name: 'Batman' }]
+}
+loadNames();
+</script>
+</html>
