@@ -59,7 +59,7 @@ public class Drawer {
 		System.out.println("Read: " + (System.currentTimeMillis() - start));
 
 		// save an image
-		BufferedImage image = process(originalImage, originalImage.getType(), nom, description, color);
+		BufferedImage image = process(originalImage, originalImage.getType(), nom.toLowerCase(), description.toLowerCase(), color);
 		System.out.println("Process: " + (System.currentTimeMillis() - start));
 		return image;
 	}
