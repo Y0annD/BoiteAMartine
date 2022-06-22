@@ -26,7 +26,7 @@ import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.StaticHandler;
 
 public class MartineVerticle extends AbstractVerticle {
-	
+
 	private String root = "webroot";
 
 	private HttpServer server;
@@ -42,9 +42,18 @@ public class MartineVerticle extends AbstractVerticle {
 			JsonObject object = new JsonObject();
 			List<String> fileList;
 			try {
-				fileList = Files.list(Path.of(root)).map(p -> p.getFileName().toString()).filter(f -> f.endsWith(".jpg"))
-						.collect(Collectors.toList());
-			} catch (IOException e) {
+				fileList = Files.list(Path.of(root)).filter(p -> {
+					String mimeType;
+					try {
+						mimeType = Files.probeContentType(p);
+						return mimeType.startsWith("image/");
+					} catch (IOException e) {
+						return false;
+					}
+				}).map(p -> p.getFileName().toString()).collect(Collectors.toList());
+			} catch (
+
+			IOException e) {
 				fileList = new ArrayList<>();
 			}
 			object.put("images", new JsonArray(fileList));
@@ -56,13 +65,14 @@ public class MartineVerticle extends AbstractVerticle {
 			JsonObject content = ctx.body().asJsonObject();
 			HttpServerResponse response = ctx.response();
 			try {
-				BufferedImage img = mDrawer.processImage(Path.of(root+"/"+content.getString("image")), content.getString("name"), content.getString("description"));
-				response.putHeader("content-type","image/jpeg");
+				BufferedImage img = mDrawer.processImage(Path.of(root + "/" + content.getString("image")),
+						content.getString("name"), content.getString("description"));
+				response.putHeader("content-type", "image/jpeg");
 				ByteArrayOutputStream baos = new ByteArrayOutputStream();
 				ImageIO.write(img, "png", baos);
 				byte[] imageBytes = baos.toByteArray();
-				response.putHeader("content-length", ""+imageBytes.length);
-				response.write( Buffer.buffer().appendBytes(imageBytes));
+				response.putHeader("content-length", "" + imageBytes.length);
+				response.write(Buffer.buffer().appendBytes(imageBytes));
 				response.end();
 			} catch (IOException | FontFormatException e) {
 				e.printStackTrace();

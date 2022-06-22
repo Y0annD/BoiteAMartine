@@ -8,10 +8,10 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.font.TextAttribute;
-import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.AttributedString;
@@ -53,7 +53,10 @@ public class Drawer {
 	public BufferedImage processImage(Path source, String nom, String description)
 			throws IOException, FontFormatException {
 		long start = System.currentTimeMillis();
-
+		String mimeType = Files.probeContentType(source);
+		if (!mimeType.startsWith("image/")) {
+			throw new IOException("Bad MIME type");
+		}
 		BufferedImage originalImage = ImageIO.read(source.toFile());
 
 		System.out.println("Read: " + (System.currentTimeMillis() - start));
@@ -108,7 +111,7 @@ public class Drawer {
 				rectHeight * nameRatio);
 		float sizeLine2 = getFontSizeForSize(description, old.getGraphics(), mFont, old.getWidth() * 0.8,
 				rectHeight * descriptionRatio);
-		sizeLine2 = Math.min(sizeLine2, sizeLine1/2f);
+		sizeLine2 = Math.min(sizeLine2, sizeLine1 / 2f);
 
 		Color color = getColor(old);
 		Graphics2D g2d = (Graphics2D) old.getGraphics();
