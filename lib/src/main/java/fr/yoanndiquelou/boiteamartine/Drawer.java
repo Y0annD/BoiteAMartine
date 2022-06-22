@@ -16,13 +16,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.AttributedString;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
 
 import javax.imageio.ImageIO;
+
+import fr.yoanndiquelou.boiteamartine.utils.ColorUtils;
 
 public class Drawer {
 
@@ -43,14 +40,14 @@ public class Drawer {
 
 		Path source = Paths.get(args[0]);
 		Drawer drawer = new Drawer();
-		drawer.processImage(source, args[1], String.join(" ", Arrays.copyOfRange(args, 2, args.length)));
+		drawer.processImage(source, args[1], String.join(" ", Arrays.copyOfRange(args, 2, args.length)), null);
 	}
 
 	public Drawer() {
 
 	}
 
-	public BufferedImage processImage(Path source, String nom, String description)
+	public BufferedImage processImage(Path source, String nom, String description, Color color)
 			throws IOException, FontFormatException {
 		long start = System.currentTimeMillis();
 		String mimeType = Files.probeContentType(source);
@@ -62,7 +59,7 @@ public class Drawer {
 		System.out.println("Read: " + (System.currentTimeMillis() - start));
 
 		// save an image
-		BufferedImage image = process(originalImage, originalImage.getType(), nom, description);
+		BufferedImage image = process(originalImage, originalImage.getType(), nom, description, color);
 		System.out.println("Process: " + (System.currentTimeMillis() - start));
 		return image;
 	}
@@ -100,7 +97,7 @@ public class Drawer {
 		return size - 1f;
 	}
 
-	private BufferedImage process(BufferedImage old, int type, String nom, String description)
+	private BufferedImage process(BufferedImage old, int type, String nom, String description, Color color)
 			throws FontFormatException, IOException {
 		double widthOffsetRatio = 0.02;
 		double nameRatio = 0.5;
@@ -113,7 +110,9 @@ public class Drawer {
 				rectHeight * descriptionRatio);
 		sizeLine2 = Math.min(sizeLine2, sizeLine1 / 2f);
 
-		Color color = getColor(old);
+		if (null == color) {
+			color = ColorUtils.getColor(old);
+		}
 		Graphics2D g2d = (Graphics2D) old.getGraphics();
 		g2d.fillRect(Double.valueOf(old.getWidth() * widthOffsetRatio).intValue(), 0, old.getWidth(), rectHeight);
 		AttributedString attributedText = new AttributedString(nom);
@@ -138,75 +137,4 @@ public class Drawer {
 		return old;
 	}
 
-	/**
-	 * Get main color of image.
-	 * 
-	 * @param image buffered image to process
-	 * @return main color
-	 */
-	public static Color getColor(BufferedImage image) {
-
-		Map<Integer, Integer> colorMap = new HashMap<>();
-		int height = image.getHeight();
-		int width = image.getWidth();
-
-		for (int i = 0; i < width; i++) {
-			for (int j = 0; j < height; j++) {
-				int rgb = image.getRGB(i, j);
-				if (!isGray(getRGBArr(rgb))) {
-					Integer counter = colorMap.get(rgb);
-					if (counter == null) {
-						counter = 0;
-					}
-
-					colorMap.put(rgb, ++counter);
-				}
-			}
-		}
-
-		return getMostCommonColor(colorMap, false);
-	}
-
-	private static Color getMostCommonColor(Map<Integer, Integer> map, boolean useAlpha) {
-		List<Map.Entry<Integer, Integer>> list = new LinkedList<>(map.entrySet());
-
-		Collections.sort(list, (Map.Entry<Integer, Integer> obj1,
-				Map.Entry<Integer, Integer> obj2) -> ((Comparable) obj1.getValue()).compareTo(obj2.getValue()));
-
-		Map.Entry<Integer, Integer> entry = list.get(list.size() - 1);
-		int[] rgb = getRGBArr(entry.getKey());
-		if (useAlpha) {
-			return new Color(rgb[0], rgb[1], rgb[2], rgb[3]);
-		} else {
-			return new Color(rgb[0], rgb[1], rgb[2], rgb[3]);
-		}
-	}
-
-	/**
-	 * Get Red Gren Blue Alphe from pixel value
-	 * 
-	 * @param pixel pixel value
-	 * @return table { red, green, blue, alpha }
-	 */
-	private static int[] getRGBArr(int pixel) {
-		int alpha = (pixel >> 24) & 0xff;
-		int red = (pixel >> 16) & 0xff;
-		int green = (pixel >> 8) & 0xff;
-		int blue = (pixel) & 0xff;
-
-		return new int[] { red, green, blue, alpha };
-	}
-
-	private static boolean isGray(int[] rgbArr) {
-		int rgDiff = rgbArr[0] - rgbArr[1];
-		int rbDiff = rgbArr[0] - rgbArr[2];
-		// Filter out black, white and grays...... (tolerance within 10 pixels)
-		int tolerance = 10;
-		if (rgDiff > tolerance || rgDiff < -tolerance) {
-			if (rbDiff > tolerance || rbDiff < -tolerance) {
-				return false;
-			}
-		}
-		return true;
-	}
 }

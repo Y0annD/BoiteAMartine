@@ -25,6 +25,8 @@
   		<input type="text" id="name" name="name"><br>
   		<label for="message">Message: </label>
   		<input type="text" id="message" name="message"><br>
+  		<input type="checkbox" id="autocolor" name="autocolor" checked><label for="autocolor">Autocolor</label><br>
+  		<input type="color" id="color" name="color" value="#e66465"><label for="color">Color</label><br>
   		<input type="submit" id="generer" onClick="generate()" value="generer">
 	</div>
 	<div id="images">
@@ -37,7 +39,12 @@ var selectedImg;
 async function generate() {
 	const name = document.getElementById("name").value;
 	const message = document.getElementById("message").value;
+	const autocolor = document.getElementById("autocolor").checked;
 	const object = { name: name , description: message, image: selectedImg};
+	if(!autocolor) {
+		object.color = document.getElementById("color").value;
+	}
+	
   const response = await fetch('/generate', {
     method: 'POST',
     body: JSON.stringify(object)

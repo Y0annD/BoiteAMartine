@@ -1,5 +1,6 @@
 package fr.yoanndiquelou.boiteamartine;
 
+import java.awt.Color;
 import java.awt.FontFormatException;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
@@ -68,35 +69,39 @@ public class MartineVerticle extends AbstractVerticle {
 			JsonObject content = ctx.body().asJsonObject();
 			// robustesse, on vérifie la présence des attributs nom, description et image
 			JsonArray missingAttributes = new JsonArray();
-			if(!content.containsKey("name")) {
+			if (!content.containsKey("name") || content.getString("name").isEmpty()) {
 				missingAttributes.add("name");
 			}
-			if(!content.containsKey("description")) {
+			if (!content.containsKey("description") || content.getString("description").isEmpty()) {
 				missingAttributes.add("description");
 			}
-			if(!content.containsKey("image")) {
+			if (!content.containsKey("image") || content.getString("image").isEmpty()) {
 				missingAttributes.add("image");
 			}
-			if(missingAttributes.isEmpty()) {
-			
-			try {
-				BufferedImage img = mDrawer.processImage(Path.of(root + "/" + content.getString("image")),
-						content.getString("name"), content.getString("description"));
-				response.putHeader("content-type", "image/png");
-				ByteArrayOutputStream baos = new ByteArrayOutputStream();
-				ImageIO.write(img, "png", baos);
-				byte[] imageBytes = baos.toByteArray();
-				response.putHeader("content-length", "" + imageBytes.length);
-				response.write(Buffer.buffer().appendBytes(imageBytes));
-				response.end();
-			} catch (IOException | FontFormatException e) {
-				e.printStackTrace();
+			if (missingAttributes.isEmpty()) {
+				Color color = null;
+				if (content.containsKey("color") && !content.getString("color").isEmpty()) {
+					color = Color.decode(content.getString("color"));
+				}
+				try {
+					BufferedImage img = mDrawer.processImage(Path.of(root + "/" + content.getString("image")),
+							content.getString("name"), content.getString("description"), color);
+					response.putHeader("content-type", "image/png");
+					ByteArrayOutputStream baos = new ByteArrayOutputStream();
+					ImageIO.write(img, "png", baos);
+					byte[] imageBytes = baos.toByteArray();
+					response.putHeader("content-length", "" + imageBytes.length);
+					response.write(Buffer.buffer().appendBytes(imageBytes));
+					response.end();
+				} catch (IOException | FontFormatException e) {
+					e.printStackTrace();
+					response.putHeader("content-type", "application/json");
+					response.end(new JsonObject().put("error", e.getLocalizedMessage()).encodePrettily());
+				}
+			} else {
 				response.putHeader("content-type", "application/json");
-				response.end(new JsonObject().put("error", e.getLocalizedMessage()).encodePrettily());
-			}
-			}else {
-				response.putHeader("content-type", "application/json");
-				response.setStatusCode(400).end(new JsonObject().put("missing-attributes", missingAttributes).encodePrettily());
+				response.setStatusCode(400)
+						.end(new JsonObject().put("missing-attributes", missingAttributes).encodePrettily());
 			}
 		});
 		router.route("/*").handler(StaticHandler.create(root));
