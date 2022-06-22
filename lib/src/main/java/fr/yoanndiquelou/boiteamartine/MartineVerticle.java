@@ -23,6 +23,7 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
+import io.vertx.ext.web.handler.ResponseContentTypeHandler;
 import io.vertx.ext.web.handler.StaticHandler;
 
 public class MartineVerticle extends AbstractVerticle {
@@ -62,12 +63,26 @@ public class MartineVerticle extends AbstractVerticle {
 			response.end(object.encodePrettily());
 		});
 		router.route(HttpMethod.POST, "/generate").handler(ctx -> {
-			JsonObject content = ctx.body().asJsonObject();
 			HttpServerResponse response = ctx.response();
+
+			JsonObject content = ctx.body().asJsonObject();
+			// robustesse, on vérifie la présence des attributs nom, description et image
+			JsonArray missingAttributes = new JsonArray();
+			if(!content.containsKey("name")) {
+				missingAttributes.add("name");
+			}
+			if(!content.containsKey("description")) {
+				missingAttributes.add("description");
+			}
+			if(!content.containsKey("image")) {
+				missingAttributes.add("image");
+			}
+			if(missingAttributes.isEmpty()) {
+			
 			try {
 				BufferedImage img = mDrawer.processImage(Path.of(root + "/" + content.getString("image")),
 						content.getString("name"), content.getString("description"));
-				response.putHeader("content-type", "image/jpeg");
+				response.putHeader("content-type", "image/png");
 				ByteArrayOutputStream baos = new ByteArrayOutputStream();
 				ImageIO.write(img, "png", baos);
 				byte[] imageBytes = baos.toByteArray();
@@ -78,6 +93,10 @@ public class MartineVerticle extends AbstractVerticle {
 				e.printStackTrace();
 				response.putHeader("content-type", "application/json");
 				response.end(new JsonObject().put("error", e.getLocalizedMessage()).encodePrettily());
+			}
+			}else {
+				response.putHeader("content-type", "application/json");
+				response.setStatusCode(400).end(new JsonObject().put("missing-attributes", missingAttributes).encodePrettily());
 			}
 		});
 		router.route("/*").handler(StaticHandler.create(root));
